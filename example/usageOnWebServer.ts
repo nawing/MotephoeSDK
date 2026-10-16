@@ -1,6 +1,6 @@
 // server.ts
 import {Elysia} from "elysia";
-import Motephoe from "@motephoe/sdk";
+import Motephoe from "@mmpay/motephoe";
 
 // Initialize the Motephoe SDK
 const motephoe = new Motephoe({

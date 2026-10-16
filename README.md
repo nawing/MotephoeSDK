@@ -1,4 +1,4 @@
-# Motephoe Developer SDK (`@motephoe/sdk`)
+# Motephoe Developer SDK (`@mmpay/motephoe`)
 
 Official client library for connecting physical hardware, IoT microcontrollers (Arduino, ESP32, Raspberry Pi), and third-party bots directly to live **Motephoe** interactive stream events via native WebSockets.
 
@@ -6,7 +6,7 @@ Official client library for connecting physical hardware, IoT microcontrollers (
 
 ## 1. Overview
 
-Motephoe streams deliver real-time interactive events (virtual gifts, live store purchases, and paid Q&A priority questions) through high-performance Bun-powered WebSockets. `@motephoe/sdk` provides a lightweight, zero-dependency client supporting both **ESM** (`import`) and **CommonJS** (`require`) environments, complete with automatic reconnection, typed payloads, and a chainable API.
+Motephoe streams deliver real-time interactive events (virtual gifts, live store purchases, and paid Q&A priority questions) through high-performance Bun-powered WebSockets. `@mmpay/motephoe` provides a lightweight, zero-dependency client supporting both **ESM** (`import`) and **CommonJS** (`require`) environments, complete with automatic reconnection, typed payloads, and a chainable API.
 
 ```text
        Motephoe Platform
@@ -26,7 +26,7 @@ Motephoe streams deliver real-time interactive events (virtual gifts, live store
                │  Direct Native WebSocket
                ▼
   ┌─────────────────────────┐
-  │     @motephoe/sdk       │  (Node.js 26+ / Bun 1.4.3+)
+  │     @mmpay/motephoe       │  (Node.js 26+ / Bun 1.4.3+)
   └────────────┬────────────┘
                │  Johnny-Five / Serial / GPIO
                ▼
@@ -41,16 +41,16 @@ Motephoe streams deliver real-time interactive events (virtual gifts, live store
 
 ```bash
 # npm
-npm install @motephoe/sdk
+npm install @mmpay/motephoe
 
 # bun
-bun add @motephoe/sdk
+bun add @mmpay/motephoe
 
 # pnpm
-pnpm add @motephoe/sdk
+pnpm add @mmpay/motephoe
 
 # yarn
-yarn add @motephoe/sdk
+yarn add @mmpay/motephoe
 ```
 
 > **Runtime Requirement:** Node.js `>=26.0.0` or Bun `>=1.4.3` (Native `globalThis.WebSocket` support required).
@@ -63,7 +63,7 @@ Connect an Arduino servo that sweeps 90 degrees whenever a viewer sends a virtua
 
 ```typescript
 import { Board, Servo } from "johnny-five";
-import Motephoe from "@motephoe/sdk";
+import Motephoe from "@mmpay/motephoe";
 
 const board = new Board();
 
@@ -119,14 +119,14 @@ board.on("ready", async () => {
 
 ### ECMAScript Modules (ESM)
 ```typescript
-import Motephoe, { IGiftEvent, ILivePurchaseEvent, IQnAEvent } from "@motephoe/sdk";
+import Motephoe, { IGiftEvent, ILivePurchaseEvent, IQnAEvent } from "@mmpay/motephoe";
 
 const client = new Motephoe({ apiKey: "mph_live_..." });
 ```
 
 ### CommonJS (CJS)
 ```javascript
-const { Motephoe } = require("@motephoe/sdk");
+const { Motephoe } = require("@mmpay/motephoe");
 
 const client = new Motephoe({ apiKey: "mph_live_..." });
 ```

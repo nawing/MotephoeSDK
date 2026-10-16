@@ -3,7 +3,7 @@
 
 const { Board, Led, Servo } = require("johnny-five");
 const Raspi = require("raspi-io").RaspiIO; // Requires the raspi-io plugin
-const { Motephoe } = require("@motephoe/sdk");
+const { Motephoe } = require("@mmpay/motephoe");
 const dotenv = require("dotenv");
 dotenv.config()
 

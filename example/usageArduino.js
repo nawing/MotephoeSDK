@@ -2,7 +2,7 @@
 // Jonny Five only support cjs
 
 const { Board, Led, Servo } = require("johnny-five");
-const { Motephoe } = require("@motephoe/sdk");
+const { Motephoe } = require("@mmpay/motephoe");
 const dotenv = require("dotenv");
 dotenv.config()
 
