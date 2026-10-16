@@ -53,9 +53,9 @@ export interface ICartItemLite {
 export interface IBaseLiveEvent {
     orderId: string;
     merchantId: string;
+    customerId: string;
     customerName: string;
-    grandTotal: number;
-    notes?: string;
+    amount: number;
     cartItems: ICartItemLite[];
     appType: LiveAppType;
     timestamp: string | number;
@@ -65,12 +65,15 @@ export interface IBaseLiveEvent {
  */
 export interface IGiftEvent extends IBaseLiveEvent {
     appType: 'TEATIP_STREAM';
+    notes?: string;
+    stickerId: string;
 }
 /**
  * Emitted when a viewer purchases a physical or digital product from the Live Sale inventory.
  */
 export interface ILivePurchaseEvent extends IBaseLiveEvent {
     appType: 'TEATIP_SALE';
+    customerEmail: string;
     customerPhone?: string;
     customerAddress?: string;
 }
@@ -79,6 +82,7 @@ export interface ILivePurchaseEvent extends IBaseLiveEvent {
  */
 export interface IQnAEvent extends IBaseLiveEvent {
     appType: 'TEATIP_QNA';
+    notes?: string;
     question: string;
 }
 export type GiftCallback = (gift: IGiftEvent) => void;
