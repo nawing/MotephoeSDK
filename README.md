@@ -26,7 +26,7 @@ Motephoe streams deliver real-time interactive events (virtual gifts, live store
                │  Direct Native WebSocket
                ▼
   ┌─────────────────────────┐
-  │     @motephoe/sdk       │  (Node.js 22+ / Bun)
+  │     @motephoe/sdk       │  (Node.js 26+ / Bun 1.4.3+)
   └────────────┬────────────┘
                │  Johnny-Five / Serial / GPIO
                ▼
@@ -53,7 +53,7 @@ pnpm add @motephoe/sdk
 yarn add @motephoe/sdk
 ```
 
-> **Runtime Requirement:** Node.js `>=22.0.0` or Bun `>=1.0.0` (Native `globalThis.WebSocket` support required).
+> **Runtime Requirement:** Node.js `>=26.0.0` or Bun `>=1.4.3` (Native `globalThis.WebSocket` support required).
 
 ---
 
@@ -82,10 +82,10 @@ board.on("ready", async () => {
   // Attach event handlers
   motephoe
     .onConnect(() => {
-      console.log(" Connected to Motephoe real-time event pipeline.");
+      console.log("🟢 Connected to Motephoe real-time event pipeline.");
     })
     .onGift((gift) => {
-      console.log(`🎁 Gift received: ${gift.customerName} sent an item! Total: ${gift.grandTotal} MMK`);
+      console.log(`🎁 Gift received: ${gift.customerName} sent sticker [${gift.stickerId}]! Amount: ${gift.amount} MMK`);
 
       // Physical reaction: Rotate servo to 90 degrees
       servo.to(90);
@@ -96,10 +96,10 @@ board.on("ready", async () => {
       }, 500);
     })
     .onLivePurchase((sale) => {
-      console.log(`🛒 Live Sale: ${sale.customerName} ordered ${sale.cartItems.length} product(s)!`);
+      console.log(`🛒 Live Sale: ${sale.customerName} (${sale.customerEmail}) ordered ${sale.cartItems.length} product(s)! Total: ${sale.amount} MMK`);
     })
     .onQuestion((qna) => {
-      console.log(`❓ Question from ${qna.customerName}: "${qna.question}"`);
+      console.log(`❓ Question from ${qna.customerName}: "${qna.question}" (Bounty: ${qna.amount} MMK)`);
     })
     .onError((error) => {
       console.error("❌ SDK Error:", error.message);
@@ -126,7 +126,7 @@ const client = new Motephoe({ apiKey: "mph_live_..." });
 
 ### CommonJS (CJS)
 ```javascript
-const { default: Motephoe } = require("@motephoe/sdk");
+const { Motephoe } = require("@motephoe/sdk");
 
 const client = new Motephoe({ apiKey: "mph_live_..." });
 ```
@@ -139,8 +139,8 @@ Pass the `MotephoeOptions` object to the constructor:
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `apiKey` | `string` | **Required** | Your secret API key generated in the Motephoe Creator Panel (`mph_live_...`). |
-| `serverUrl` | `string` | `"wss://motephoe.com"` | Base URL of the Motephoe WebSocket server. |
+| `apiKey` | `string` | **Required** | Secret API key generated in the Motephoe Creator Panel (`mph_live_...`). |
+| `serverUrl` | `string` | `"wss://wsx.motephoe.com"` | Base URL of the Motephoe WebSocket server. |
 | `autoReconnect` | `boolean` | `true` | Automatically reconnect if the socket drops unexpectedly. |
 | `reconnectInterval` | `number` | `3000` | Initial retry delay in milliseconds (scales with backoff). |
 | `maxRetries` | `number` | `Infinity` | Max reconnection attempts before triggering an `error` event. |
@@ -158,101 +158,107 @@ const motephoe = new Motephoe({
 
 ---
 
-## 6. Event API Reference
+## 6. Event Models & Data Payloads
 
-The SDK categorizes platform transactions into three clean, dedicated event listeners:
+All live stream events extend `IBaseLiveEvent`:
+
+```typescript
+export type LiveAppType = 'TEATIP_STREAM' | 'TEATIP_SALE' | 'TEATIP_QNA';
+
+export interface ICartItemLite {
+  itemCode: string;
+  itemName: string;
+  price: number;
+  quantity: number;
+}
+
+export interface IBaseLiveEvent {
+  orderId: string;
+  merchantId: string;
+  customerId: string;
+  customerName: string;
+  amount: number;
+  cartItems: ICartItemLite[];
+  appType: LiveAppType;
+  timestamp: string | number;
+}
+```
+
+---
+
+## 7. Event API Reference
 
 ### 1. `onGift(callback: (gift: IGiftEvent) => void): this`
-Fires whenever a viewer sends a virtual tipping sticker/gift.
+Fires whenever a viewer sends a virtual tipping sticker or gift.
 
 ```typescript
 motephoe.onGift((gift) => {
   console.log("Order ID:", gift.orderId);
   console.log("Sender:", gift.customerName);
-  console.log("Amount (MMK):", gift.grandTotal);
-  console.log("Notes/Message:", gift.notes);
-  console.log("Items:", gift.cartItems);
+  console.log("Customer ID:", gift.customerId);
+  console.log("Sticker ID:", gift.stickerId);
+  console.log("Amount (MMK):", gift.amount);
+  console.log("Note:", gift.notes);
+  console.log("Gift Items:", gift.cartItems);
 });
 ```
 
-#### `IGiftEvent` Payload Structure
+#### `IGiftEvent` Interface
 ```typescript
-interface IGiftEvent {
-  orderId: string;
-  merchantId: string;
-  customerName: string;
-  grandTotal: number;
-  notes?: string;
-  cartItems: {
-    itemCode: string;
-    itemName: string;
-    price: number;
-    quantity: number;
-  }[];
+interface IGiftEvent extends IBaseLiveEvent {
   appType: 'TEATIP_STREAM';
-  timestamp: string | number;
+  notes?: string;
+  stickerId: string;
 }
 ```
 
 ---
 
 ### 2. `onLivePurchase(callback: (sale: ILivePurchaseEvent) => void): this`
-Fires when an order is placed through the **Live Sale** inventory tab.
+Fires when a viewer purchases physical or digital products via the **Live Sale** inventory tab.
 
 ```typescript
 motephoe.onLivePurchase((sale) => {
   console.log(`Order #${sale.orderId} placed by ${sale.customerName}`);
-  console.log("Delivery Phone:", sale.customerPhone);
+  console.log("Customer ID:", sale.customerId);
+  console.log("Email:", sale.customerEmail);
+  console.log("Phone:", sale.customerPhone);
   console.log("Delivery Address:", sale.customerAddress);
-  console.log("Purchased Items:", sale.cartItems);
+  console.log("Total Amount:", sale.amount);
+  console.log("Cart Items:", sale.cartItems);
 });
 ```
 
-#### `ILivePurchaseEvent` Payload Structure
+#### `ILivePurchaseEvent` Interface
 ```typescript
-interface ILivePurchaseEvent {
-  orderId: string;
-  merchantId: string;
-  customerName: string;
-  grandTotal: number;
-  notes?: string;
-  cartItems: {
-    itemCode: string;
-    itemName: string;
-    price: number;
-    quantity: number;
-  }[];
+interface ILivePurchaseEvent extends IBaseLiveEvent {
   appType: 'TEATIP_SALE';
+  customerEmail: string;
   customerPhone?: string;
   customerAddress?: string;
-  timestamp: string | number;
 }
 ```
 
 ---
 
 ### 3. `onQuestion(callback: (qna: IQnAEvent) => void): this`
-Fires when a viewer sends a paid question or priority prompt.
+Fires when a viewer submits a paid question or priority message to the stream.
 
 ```typescript
 motephoe.onQuestion((qna) => {
-  console.log(`Question from ${qna.customerName}: "${qna.question}"`);
-  console.log("Bounty/Paid Amount:", qna.grandTotal);
+  console.log(`Question from ${qna.customerName} (${qna.customerId}):`);
+  console.log(`"${qna.question}"`);
+  console.log("Bounty Amount:", qna.amount);
+  console.log("Optional Note:", qna.notes);
 });
 ```
 
-#### `IQnAEvent` Payload Structure
+#### `IQnAEvent` Interface
 ```typescript
-interface IQnAEvent {
-  orderId: string;
-  merchantId: string;
-  customerName: string;
-  grandTotal: number;
-  question: string;
-  notes?: string;
-  cartItems: ICartItemLite[];
+interface IQnAEvent extends IBaseLiveEvent {
   appType: 'TEATIP_QNA';
-  timestamp: string | number;
+  notes?: string;
+  question: string;
 }
 ```
 
@@ -265,23 +271,23 @@ interface IQnAEvent {
 * **`onDisconnect(callback: (reason: string) => void): this`**
   Emitted when the connection is terminated.
 * **`onError(callback: (error: Error) => void): this`**
-  Emitted when authentication fails, socket error triggers, or max retries are exceeded.
+  Emitted when authentication fails, socket errors trigger, or max retries are exceeded.
 * **`disconnect(): void`**
-  Closes the connection intentionally and permanently disables the reconnection loop for that instance.
+  Closes the connection intentionally and halts the reconnection loop.
 
 ---
 
-## 7. Security Best Practices
+## 8. Security Best Practices
 
-1. **Environment Variables**: Never hardcode API keys in Git repositories or client-facing scripts. Use `.env` or system environment variables:
+1. **Environment Variables**: Never commit API keys to version control or expose them in client-side bundles. Use `.env` or system environment variables:
    ```bash
    MOTEPHOE_API_KEY="mph_live_..."
    ```
-2. **Key Rotation**: If an API key is leaked during a livestream (e.g., exposed on OBS desktop capture), go immediately to the **Motephoe Creator Panel > Integrations > Developer API Key** and click **Rotate Key**. The old key is invalidated across the entire cluster instantly.
-3. **Read-Only Enforced**: Client SDK WebSocket connections are strictly read-only subscribers. Inbound client frames are ignored by the server pub/sub engine.
+2. **Key Rotation**: If an API key is leaked on stream, go immediately to **Motephoe Creator Panel > Integrations > Developer API Key** and click **Rotate Key**. The old key will be revoked across NATS KV immediately.
+3. **Read-Only Subscriber**: The SDK WebSocket client is strictly a downstream listener. Inbound client frames are ignored by the server.
 
 ---
 
-## 8. License
+## 9. License
 
 MIT © [Motephoe](https://motephoe.com)
